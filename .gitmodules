@@ -1,0 +1,3 @@
+[submodule "Text-Detection-with-FRCN"]
+	path = Text-Detection-with-FRCN
+	url = git@github.com:jugg1024/Text-Detection-with-FRCN.git
