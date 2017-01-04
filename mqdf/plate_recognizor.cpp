@@ -211,14 +211,13 @@ pair<double, string>  modify_result(string result)
 	return make_pair(min, min_str);
 }
 
-pair<double, string>  modify_result2(string result)
+pair<int,pair<double, string> > modify_result2(string result)
 {
 	if (result == "")
-		return make_pair(0, "");
+		return make_pair(0,make_pair(0, ""));
 	int num = sizeof(dictionary) / sizeof(dictionary[0]);
 	string min_str = "";
-	double min = 10000;
-	vector<int>min_bin;
+	double min_v = 10000;
 	vector<double>min_bin2;
 	for (int i = 0; i <num; i++)
 	{
@@ -231,11 +230,10 @@ pair<double, string>  modify_result2(string result)
 			ma = n;
 		int tem = ldistance2(split_words(dictionary[i]), split_words(result));
 		double te = double(tem / double(ma));
-		min_bin.push_back(tem);
 		min_bin2.push_back(te);
-		if (min>tem)
+		if (min_v>te)
 		{
-			min = tem;
+			min_v = te;
 			min_str = dictionary[i];
 		}
 
@@ -243,9 +241,9 @@ pair<double, string>  modify_result2(string result)
 	sort(min_bin2.begin(), min_bin2.end(), less<double>());
 
 	/*if (min_bin[0] == 1)*/
-	if ((min_bin2[0] == 0) || (min_bin[1] != min))
-		return make_pair(0, min_str);
-	return make_pair(min, min_str);
+	if ((min_bin2[0] == 0) || (min_bin2[1] != min_v))
+		return make_pair(0, make_pair(min_v, min_str));
+	return make_pair(1, make_pair(min_v, min_str));
 }
 
 Rect mergeRect(Rect x1, Rect x2)
@@ -385,12 +383,15 @@ string result_end(vector<string>result_terminal, vector<vector<std::map<double, 
 
 	string result = "";
 	pair<double, string>results;
+	results.first = 0;
+	results.second ="";
 	for (int num_result = 0; num_result < result_terminal.size(); num_result++)
 	{
-		pair<double, string> s = modify_result2(result_terminal[num_result]);
+		pair<int, pair<double, string> > s = modify_result2(result_terminal[num_result]);
 		if (s.first == 0)
 		{
-			result = s.second;
+			results = s.second;
+			result = s.second.second;
 			break;
 		}
 		else
@@ -402,7 +403,6 @@ string result_end(vector<string>result_terminal, vector<vector<std::map<double, 
 				std::map<double, std::string, std::greater<double> >::reverse_iterator it = result_line[num_cha].rbegin();
 
 			}
-			pair<int, string>end = make_pair(100, "");
 			bool flag = false;
 			pair<double, string> cur_str;
 			pair<double, string>min_str;
@@ -410,24 +410,30 @@ string result_end(vector<string>result_terminal, vector<vector<std::map<double, 
 			min_str.second = "";
 			results = dfs(flag, result_line, 0, cur_str, min_str);
 			result = modify_result(results.second).second;
+			return result;
 
 		}
 	}
 	return result;
 }
 
+
 string rec_img(Mat img, string mqdf_load_path)
 {
-	double thresh = 125;
+	double thresh = 150;
 	double hw_lowRatio = 0.45;
-	double hw_highRatio = 1.45;
+	double hw_highRatio = 1.35;
 	int num_pic = 0;
 
 	resize(img, img, Size(), 2, 2, INTER_LINEAR);
 	int width_estimate;
-	vector<vector<Rect_<int> > > rect = Bbox(img, width_estimate,mqdf_load_path);
+	vector<vector<Rect_<int> > > rect = Bbox(img, width_estimate, mqdf_load_path);
+
 	vector<string>result_terminal;
 	vector<vector<std::map<double, std::string, std::greater<double> > > >result_all;
+
+	vector<string>result_terminales;
+	vector<vector<std::map<double, std::string, std::greater<double> > > >result_alles;
 	for (int num = 0; num < rect.size(); num++)
 	{
 		vector<std::map<double, std::string, std::greater<double> > > result_line;
@@ -442,13 +448,9 @@ string rec_img(Mat img, string mqdf_load_path)
 				i--;
 			}
 		}
-
-		vector<Rect> result_rect;
+		vector<Rect_<int> >rect2bk = rect2;
 		string ch = "";
-		int m_indx = 0;
 
-
-		double min_value;
 		for (int index1 = 0; index1 < rect2.size(); index1++)
 		{
 			vector<Rect>::iterator it = rect2.begin();
@@ -457,15 +459,19 @@ string rec_img(Mat img, string mqdf_load_path)
 
 			vector<pair<Rect, int> >Rect_index;
 			Rect_index.push_back(make_pair(x1, index1));
+
 			for (int index2 = index1 + 1; index2 < rect2.size(); index2++)
 			{
 				modifyRect(rect2[index2], img);
 				Rect x2 = mergeRect(x1, rect2[index2]);
-				Mat imm = img(x2);
-				if (x2.width >width_estimate*1.35)
+
+				if (x2.width >x2.height*1.4)
 					break;
+
 				Rect_index.push_back(make_pair(x2, index2));
+
 				x1 = x2;
+
 			}
 			double min_value = 1000;
 			int min_index = 0;
@@ -476,24 +482,12 @@ string rec_img(Mat img, string mqdf_load_path)
 			for (int m_rect = 0; m_rect < Rect_index.size(); m_rect++)
 			{
 
-				//Mat temp_im2 = img(Rect_index[m_rect].first);
-				//std::map<double, std::string, std::greater<double> > Istext2 = NewSample(4, rank, temp_im2, mqdf_load_path);
-				//int mi = min(Rect_index[m_rect].first.width, Rect_index[m_rect].first.height);
-				//int expand = cvRound(0.05*mi);
-
 				Rect temp_rect = expandRectV(Rect_index[m_rect].first, img, 0.1);
 				Mat temp_im1 = img(temp_rect);
 				std::map<double, std::string, std::greater<double> > Istext = NewSample(4, rank, temp_im1, mqdf_load_path);
-				for (auto it = Istext.begin(); it != Istext.end(); ++it)
-				{
-					char utf8_res[OUTLEN];
-					// cout << it->second << endl;
-					g2u((char*)it->second.c_str(), strlen(it->second.c_str()), utf8_res, OUTLEN);
-					it->second = string(utf8_res);
-					// cout << it->second << endl;
-				}
-
-
+				//*****************---
+				/////------转码
+				//
 				if (min_value > Istext.rbegin()->first)
 				{
 					single_cha.clear();
@@ -502,33 +496,133 @@ string rec_img(Mat img, string mqdf_load_path)
 					min_cha = Istext.rbegin()->second;
 					single_cha = Istext;
 				}
-
 			}
 
 			if (min_value > thresh || (min_Rect_index.first.width < hw_lowRatio*width_estimate))
-				//|| (min_Rect_index.first.width > hw_highRatio*width_estimate))
 			{
 				rect2.erase(it + index1);
 				index1--;
-
-
 				continue;
 			}
 			else
 			{
 				result_line.push_back(single_cha);
-				Mat temp_cha = img(min_Rect_index.first);
 				ch += min_cha;
 				index1 = min_Rect_index.second;
 
 			}
+
 		}
+
+
 		result_terminal.push_back(ch);
 		result_all.push_back(result_line);
+		vector<std::map<double, std::string, std::greater<double> > > result_linees;
+
+		string ches = "";
+
+		
+		for (int index1es = 0; index1es < rect2bk.size(); index1es++)
+		{
+			vector<Rect>::iterator ites = rect2bk.begin();
+			Rect x1es = rect2bk[index1es];
+			modifyRect(x1es, img);
+
+			vector<pair<Rect, int> >Rect_indexes;
+			Rect_indexes.push_back(make_pair(x1es, index1es));
+
+			for (int index2es = index1es + 1; index2es < rect2bk.size(); index2es++)
+			{
+				modifyRect(rect2bk[index2es], img);
+				Rect x2es = mergeRect(x1es, rect2bk[index2es]);
+				if (x2es.width >width_estimate*1.4)
+					break;
+
+				Rect_indexes.push_back(make_pair(x2es, index2es));
+				x1es = x2es;
+
+			}
+			double min_valuees = 1000;
+			int min_indexes = 0;
+			pair<Rect, int> min_Rect_indexes = Rect_indexes[0];
+			string min_chaes = "";
+			std::map<double, std::string, std::greater<double> >single_chaes;
+			int rankes = 3;
+			for (int m_rectes = 0; m_rectes < Rect_indexes.size(); m_rectes++)
+			{
+
+				Rect temp_rectes = expandRectV(Rect_indexes[m_rectes].first, img, 0.1);
+				Mat temp_im1es = img(temp_rectes);
+				std::map<double, std::string, std::greater<double> > Istextes = NewSample(4, rankes, temp_im1es, mqdf_load_path);
+				//*****************---
+				/////------转码
+				//
+				//
+				if (min_valuees > Istextes.rbegin()->first)
+				{
+					single_chaes.clear();
+					min_valuees = Istextes.rbegin()->first;
+					min_Rect_indexes = Rect_indexes[m_rectes];
+					min_chaes = Istextes.rbegin()->second;
+					single_chaes = Istextes;
+				}
+
+
+
+			}
+
+			if (min_valuees > thresh || (min_Rect_indexes.first.width < hw_lowRatio*width_estimate))
+			{
+
+				rect2bk.erase(ites + index1es);
+				index1es--;
+
+				continue;
+			}
+			else
+			{
+				result_linees.push_back(single_chaes);
+				ches += min_chaes;
+				index1es = min_Rect_indexes.second;
+
+			}
+		}
+		result_terminales.push_back(ches);
+		result_alles.push_back(result_linees);
 	}
 
-	string result = result_end(result_terminal, result_all);
-	
+
+	string result1 = "";
+	double min_s1 = 100;
+	for (int i = 0; i < result_terminal.size(); i++)
+	{
+		pair<int, pair<double, string> > s = modify_result2(result_terminal[i]);
+		if (min_s1 > s.second.first)
+		{
+			min_s1 = s.second.first;
+			result1 = s.second.second;
+		}
+	}
+	string result2 = "";
+	double min_s2 = 100;
+	for (int i = 0; i < result_terminales.size(); i++)
+	{
+		pair<int, pair<double, string> > s = modify_result2(result_terminales[i]);
+		if (min_s2 > s.second.first)
+		{
+			min_s2 = s.second.first;
+			result2 = s.second.second;
+		}
+	}
+
+	string result = "";
+	if (min_s1< min_s2)
+	{
+		result = result_end(result_terminal, result_all);
+	}
+	else
+		result = result_end(result_terminales, result_alles);
+
 	return result;
 }
 
