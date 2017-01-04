@@ -2,7 +2,7 @@
         --data_type images \
         -if $1 \
         -of ./output/$2 \
-        --gpu 0 \
+        --cpu \
         --det_prototxt /home/ligen/court_recognition/data/test.prototxt \
         --det_model  /home/ligen/court_recognition/data/vgg16_faster_rcnn_on_court_img_iter_100000.caffemodel \
         --ocr_tool  /home/ligen/court_recognition/mqdf/OCRTool \

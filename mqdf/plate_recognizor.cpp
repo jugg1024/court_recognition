@@ -485,9 +485,12 @@ string rec_img(Mat img, string mqdf_load_path)
 				Rect temp_rect = expandRectV(Rect_index[m_rect].first, img, 0.1);
 				Mat temp_im1 = img(temp_rect);
 				std::map<double, std::string, std::greater<double> > Istext = NewSample(4, rank, temp_im1, mqdf_load_path);
-				//*****************---
-				/////------转码
-				//
+				for (auto it = Istext.begin(); it != Istext.end(); ++it)
+				{
+					char utf8_res[OUTLEN];
+					g2u((char*)it->second.c_str(), strlen(it->second.c_str()), utf8_res, OUTLEN);
+					it->second = string(utf8_res);
+				}
 				if (min_value > Istext.rbegin()->first)
 				{
 					single_cha.clear();
@@ -554,10 +557,12 @@ string rec_img(Mat img, string mqdf_load_path)
 				Rect temp_rectes = expandRectV(Rect_indexes[m_rectes].first, img, 0.1);
 				Mat temp_im1es = img(temp_rectes);
 				std::map<double, std::string, std::greater<double> > Istextes = NewSample(4, rankes, temp_im1es, mqdf_load_path);
-				//*****************---
-				/////------转码
-				//
-				//
+				for (auto it = Istextes.begin(); it != Istextes.end(); ++it)
+				{
+					char utf8_res[OUTLEN];
+					g2u((char*)it->second.c_str(), strlen(it->second.c_str()), utf8_res, OUTLEN);
+					it->second = string(utf8_res);
+				}
 				if (min_valuees > Istextes.rbegin()->first)
 				{
 					single_chaes.clear();
